@@ -7,7 +7,11 @@ import { getDb } from "@/lib/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-const secretKey = new TextEncoder().encode("customer-management-secret-key-2024");
+const secret = process.env.JWT_SECRET;
+if (!secret) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
+const secretKey = new TextEncoder().encode(secret);
 
 export async function login(username: string, password: string) {
   try {
