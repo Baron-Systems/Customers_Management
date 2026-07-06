@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, TrendingUp, ShoppingCart, CreditCard, ArrowUpLeft, ArrowDownRight } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 function formatDate(timestamp: number) {
   return new Date(timestamp).toLocaleDateString("en-GB");
 }
