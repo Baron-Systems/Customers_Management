@@ -56,7 +56,13 @@ export default function StatementPage() {
   const customerId = parseInt(params.id as string);
   const [customer, setCustomer] = useState<CustomerData | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [totals, setTotals] = useState({ debit: 0, credit: 0, balance: 0 });
+  const [grandTotals, setGrandTotals] = useState({
+    debit: 0,
+    credit: 0,
+    balance: 0,
+    ordersCount: 0,
+    paymentsCount: 0,
+  });
   const [settings, setSettings] = useState<SettingsData | null>(null);
   const [loading, setLoading] = useState(true);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -144,10 +150,17 @@ export default function StatementPage() {
     });
 
     setTransactions(rows);
-    setTotals({
-      debit: rows.reduce((sum, t) => sum + t.debit, 0),
-      credit: rows.reduce((sum, t) => sum + t.credit, 0),
-      balance: runningBalance,
+
+    const allOrdersTotal = rawOrders.reduce((sum, o) => sum + o.amount, 0);
+    const allPaymentsTotal = rawPayments.reduce((sum, p) => sum + p.amount, 0);
+    const grandDebit = openingBal + allOrdersTotal;
+    const grandCredit = allPaymentsTotal;
+    setGrandTotals({
+      debit: grandDebit,
+      credit: grandCredit,
+      balance: grandDebit - grandCredit,
+      ordersCount: rawOrders.length,
+      paymentsCount: rawPayments.length,
     });
   };
 
@@ -176,9 +189,6 @@ export default function StatementPage() {
       </AppLayout>
     );
   }
-
-  const ordersCount = transactions.filter((t) => t.type === "order").length;
-  const paymentsCount = transactions.filter((t) => t.type === "payment").length;
 
   return (
     <AppLayout>
@@ -228,7 +238,7 @@ export default function StatementPage() {
               <CardContent className="p-5 flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground font-medium">إجمالي الطلبيات</p>
-                  <p className="text-2xl font-bold">{ordersCount}</p>
+                  <p className="text-2xl font-bold">{grandTotals.ordersCount}</p>
                 </div>
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-orange-600 dark:bg-orange-950/30 dark:text-orange-400">
                   <Package className="h-5 w-5" />
@@ -239,22 +249,22 @@ export default function StatementPage() {
               <CardContent className="p-5 flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground font-medium">إجمالي الدفعات</p>
-                  <p className="text-2xl font-bold">{paymentsCount}</p>
+                  <p className="text-2xl font-bold">{grandTotals.paymentsCount}</p>
                 </div>
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400">
                   <CreditCard className="h-5 w-5" />
                 </div>
               </CardContent>
             </Card>
-            <Card className={cn("border shadow-sm", totals.balance > 0 ? "border-amber-100 dark:border-amber-900/20" : "border-emerald-100 dark:border-emerald-900/20")}>
+            <Card className={cn("border shadow-sm", grandTotals.balance > 0 ? "border-amber-100 dark:border-amber-900/20" : "border-emerald-100 dark:border-emerald-900/20")}>
               <CardContent className="p-5 flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground font-medium">الرصيد الحالي</p>
-                  <p className={cn("text-2xl font-bold", totals.balance > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400")}>
-                    {formatNumber(totals.balance)}
+                  <p className={cn("text-2xl font-bold", grandTotals.balance > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400")}>
+                    {formatNumber(grandTotals.balance)}
                   </p>
                 </div>
-                <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", totals.balance > 0 ? "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400" : "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400")}>
+                <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", grandTotals.balance > 0 ? "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400" : "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400")}>
                   <TrendingUp className="h-5 w-5" />
                 </div>
               </CardContent>
@@ -314,19 +324,19 @@ export default function StatementPage() {
             <Card className="border shadow-sm bg-orange-50/30 dark:bg-orange-950/10 border-orange-100 dark:border-orange-900/20">
               <CardContent className="p-5">
                 <p className="text-xs text-muted-foreground font-medium mb-1">إجمالي المدين</p>
-                <p className="text-xl font-bold text-orange-600 dark:text-orange-400">{formatNumber(totals.debit)}</p>
+                <p className="text-xl font-bold text-orange-600 dark:text-orange-400">{formatNumber(grandTotals.debit)}</p>
               </CardContent>
             </Card>
             <Card className="border shadow-sm bg-emerald-50/30 dark:bg-emerald-950/10 border-emerald-100 dark:border-emerald-900/20">
               <CardContent className="p-5">
                 <p className="text-xs text-muted-foreground font-medium mb-1">إجمالي الدائن</p>
-                <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{formatNumber(totals.credit)}</p>
+                <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{formatNumber(grandTotals.credit)}</p>
               </CardContent>
             </Card>
             <Card className="border shadow-sm bg-primary/5 border-primary/10">
               <CardContent className="p-5">
                 <p className="text-xs text-muted-foreground font-medium mb-1">الرصيد النهائي</p>
-                <p className="text-xl font-bold text-primary">{formatNumber(totals.balance)}</p>
+                <p className="text-xl font-bold text-primary">{formatNumber(grandTotals.balance)}</p>
               </CardContent>
             </Card>
           </div>
